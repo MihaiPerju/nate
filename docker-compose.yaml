@@ -1,0 +1,12 @@
+version: "3.7"
+
+services:
+  crawler:
+    container_name: crawler
+    build:
+      context: crawler/
+        
+    volumes:
+      - /opt/backend/node_modules
+      - ./crawler:/opt/backend
+  
