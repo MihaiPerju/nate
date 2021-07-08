@@ -18,27 +18,9 @@ const crawl=async()=>{
     await page.goto(link)
 
     await clickStartButton(page)
+    await selectCity(page)
     exit(0)
 
-
-    const spans = await page.$$('span.custom-option')
-
-    const citySpan = spans.find(
-        async(item)=>{
-            const itemInnerText =await (await item.getProperty("innerText")).jsonValue()
-            return itemInnerText.toLowerCase()===values.city.toLowerCase()
-        }
-    )
-
-    // const citySpanValue = await (await citySpan.getProperty("innerText")).jsonValue()
-    // console.log({citySpanValue})
-    await page.screenshot({ path: '2.png' })
-
-    await citySpan.click()
-    await page.screenshot({ path: '3.png' })
-
-    await page.click("#next-page-btn")
-    await page.screenshot({ path: '4.png' })
 
     await page.focus('#name')
     await page.keyboard.type(values.name)
@@ -95,6 +77,41 @@ const crawl=async()=>{
 
 }
 
+const selectCity = async(page)=>{
+
+    await page.$eval('span.custom-select-trigger', (e, attr, val) => { 
+        e.setAttribute(attr, val)
+    }, constants.ACTION_ATTR, actions.CLICK)
+    captureHtml(page, "3 - added html attribute to city select input")
+
+    await page.click('span.custom-select-trigger')
+    await page.screenshot({ path: '2.png' })
+
+    const spans = await page.$$('span.custom-option')
+    const citySpan = spans.find(
+        async(item)=>{
+            const itemInnerText = await (await item.getProperty("innerText")).jsonValue()
+            return itemInnerText.toLowerCase()===values.city.toLowerCase()
+        }
+    )
+        
+    // const citySpanValue = await (await citySpan.getProperty("innerText")).jsonValue()
+    // console.log({citySpanValue})
+    await citySpan.evaluate((node, attr, val) => {
+        console.log(node)
+        node.setAttribute(attr, val)
+    },constants.ACTION_ATTR, actions.CLICK)
+    
+    // captureHtml(page, "3 - added html attribute to desired city option")
+
+    // await citySpan.click()
+    // await page.screenshot({ path: '3 - clicked the desired city option.png' })
+
+    // await page.click("#next-page-btn")
+    // await page.screenshot({ path: '4.png' })
+
+}
+
 const clickStartButton=async(page)=>{
 
     // capture initial page state
@@ -105,7 +122,7 @@ const clickStartButton=async(page)=>{
     await page.$eval('[value="Start"]', (e, attr, val) => { 
         e.setAttribute(attr, val)
     }, constants.ACTION_ATTR, actions.CLICK)
-    
+
     captureHtml(page, "0 - add html attribute to start button")
 
     await page.click('[value="Start"]')
