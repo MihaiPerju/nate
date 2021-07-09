@@ -25,35 +25,8 @@ const crawl=async()=>{
     await page.click("#next-page-btn")
     await page.screenshot({ path: 'image-logs/6 - moving to page 3.png' })
 
-    exit(0)
+    await fillForm(page)
 
-
-    await page.focus('#name')
-    await page.keyboard.type(values.name)
-
-    await page.focus('#pwd')
-    await page.keyboard.type(values.password)
-    
-    await page.focus('#email')
-    await page.keyboard.type(values.email)
-    // await page.focus('#email')
-    // await page.keyboard.type(values.email)
-
-    await page.screenshot({ path: '5.png' })
-    
-    const selectInputs = await page.$$('input[type="checkbox"]')
-
-    const selectInput = await selectInputs.find(
-        async(item)=>{
-            const itemValue =await (await item.getProperty("value")).jsonValue()
-            return itemValue.toLowerCase()===values.gender.toLowerCase()
-        }
-    )
-
-    await selectInput.click()
-    await page.screenshot({ path: '6.png' })
-
-    
     await browser.close()
 
     // await page.evaluate(() => {
@@ -100,7 +73,6 @@ const selectCity = async(page)=>{
     await page.evaluate(({ actionAttr, actionVal, dictAttr, dictVal })=>{
         const items = document.querySelectorAll("span.custom-option")
         items.forEach(item=>{
-
             if(item.innerHTML.toLowerCase()===dictVal.toLowerCase()){
                 item.setAttribute(actionAttr, actionVal)
                 item.setAttribute(dictAttr, dictVal)
@@ -156,9 +128,102 @@ const clickStartButton=async(page)=>{
     await page.screenshot({ path: 'image-logs/2 - wait for loading to disappear.png' })
 }
 
+const fillForm = async(page)=>{
+    // wait until the inputs appear
+    await page.waitForSelector('#name',{ timeout:0 })
+
+    await page.$eval('#name', (e,{ actionAttr, actionVal, dictAttr, dictVal }) => { 
+        e.setAttribute(actionAttr, actionVal)
+        e.setAttribute(dictAttr, dictVal)
+    }, {
+        actionAttr: constants.ACTION_ATTR, 
+        actionVal: actions.INPUT,
+        dictAttr: constants.DICT_ATTR,
+        dictVal: values.name
+    })
+
+    await page.focus('#name')
+
+    await page.keyboard.type(values.name)
+
+    await page.$eval('#pwd', (e,{ actionAttr, actionVal, dictAttr, dictVal }) => { 
+        e.setAttribute(actionAttr, actionVal)
+        e.setAttribute(dictAttr, dictVal)
+    }, {
+        actionAttr: constants.ACTION_ATTR, 
+        actionVal: actions.INPUT,
+        dictAttr: constants.DICT_ATTR,
+        dictVal: values.password
+    })
+    await page.focus('#pwd')
+    await page.keyboard.type(values.password)
+    
+    await page.$eval('#email', (e,{ actionAttr, actionVal, dictAttr, dictVal }) => { 
+        e.setAttribute(actionAttr, actionVal)
+        e.setAttribute(dictAttr, dictVal)
+    }, {
+        actionAttr: constants.ACTION_ATTR, 
+        actionVal: actions.INPUT,
+        dictAttr: constants.DICT_ATTR,
+        dictVal: values.email
+    })
+    await page.focus('#email')
+    await page.keyboard.type(values.email)
+
+    captureHtml(page, "6 - filled in the form")
+    await page.screenshot({ path: 'image-logs/7 - filled in the text inputs.png' })
+    
+    const selectInputs = await page.$$('input[type="checkbox"]')
+
+    let selectInput
+
+    for(let select of selectInputs){
+        const val = await (await select.getProperty("value")).jsonValue()
+        if(val.toLowerCase()===values.gender.toLowerCase()){
+            selectInput=select
+        }
+    }
+
+    const isGenderChecked = await (await selectInput.getProperty("checked")).jsonValue()
+    if(!isGenderChecked){
+        await selectInput.click()
+    }
+
+    // wait 2 seconds for the animation
+    await page.waitForTimeout(2000)
+
+    // await page.$eval('input[type="checkbox"][checked]', (e, { actionAttr, actionVal, dictAttr, dictVal }) => { 
+    //     e.setAttribute(actionAttr, actionVal)
+    //     e.setAttribute(dictAttr, dictVal)
+    // }, {
+    //     actionAttr: constants.ACTION_ATTR, 
+    //     actionVal: actions.CLICK,
+    //     dictAttr: constants.DICT_ATTR,
+    //     dictVal: values.gender
+    // })
+
+    await page.evaluate(({ actionAttr, actionVal, dictAttr, dictVal })=>{
+        const items = document.querySelectorAll('input[type="checkbox"]')
+        items.forEach(item=>{
+            if(item.getAttribute("value").toLowerCase()===dictVal.toLowerCase()){
+                item.setAttribute(actionAttr, actionVal)
+                item.setAttribute(dictAttr, dictVal)
+            }
+        })
+    },{
+        actionAttr: constants.ACTION_ATTR, 
+        actionVal: actions.CLICK,
+        dictAttr: constants.DICT_ATTR,
+        dictVal: values.gender
+    })
+
+    captureHtml(page, "7 - filled in the gender input form")
+    await page.screenshot({ path: 'image-logs/7 - filled in the gender checkbox.png' })
+}
+
 module.exports={
     crawl,
     clickStartButton,
     selectCity,
-
+    fillForm,
 }
