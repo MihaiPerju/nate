@@ -1,7 +1,6 @@
 const constants = require("./constants")
 const puppeteer = require("puppeteer")
 const { exit } = require("process")
-const fs = require("fs")
 
 const{ actions, values, link }=constants
 const { captureHtml }= require("./helpers")
@@ -15,10 +14,17 @@ const crawl=async()=>{
     })
 
     const page = await browser.newPage()
+    page.on('console', (log) => console.log(log._text))
+      
     await page.goto(link)
 
     await clickStartButton(page)
     await selectCity(page)
+
+    // move to the next page
+    await page.click("#next-page-btn")
+    await page.screenshot({ path: 'image-logs/6 - moving to page 3.png' })
+
     exit(0)
 
 
@@ -85,37 +91,50 @@ const selectCity = async(page)=>{
     captureHtml(page, "3 - added html attribute to city select input")
 
     await page.click('span.custom-select-trigger')
-    await page.screenshot({ path: '2.png' })
+    // wait 2 seconds for the animation
+    await page.waitForTimeout(2000)
 
+    await page.screenshot({ path: 'image-logs/4 - city select options appeared.png' })
+
+    // adding the attributes to the selected city
+    await page.evaluate(({ actionAttr, actionVal, dictAttr, dictVal })=>{
+        const items = document.querySelectorAll("span.custom-option")
+        items.forEach(item=>{
+
+            if(item.innerHTML.toLowerCase()===dictVal.toLowerCase()){
+                item.setAttribute(actionAttr, actionVal)
+                item.setAttribute(dictAttr, dictVal)
+            }
+        })
+    },{
+        actionAttr: constants.ACTION_ATTR, 
+        actionVal: actions.CLICK,
+        dictAttr: constants.DICT_ATTR,
+        dictVal: values.city
+    })
+
+    captureHtml(page, "5 - added html attribute to desired city option")
+
+    // find the correct city from the options
     const spans = await page.$$('span.custom-option')
-    const citySpan = spans.find(
+    const citySpan = await spans.find(
         async(item)=>{
             const itemInnerText = await (await item.getProperty("innerText")).jsonValue()
             return itemInnerText.toLowerCase()===values.city.toLowerCase()
         }
     )
-        
-    // const citySpanValue = await (await citySpan.getProperty("innerText")).jsonValue()
-    // console.log({citySpanValue})
-    await citySpan.evaluate((node, attr, val) => {
-        console.log(node)
-        node.setAttribute(attr, val)
-    },constants.ACTION_ATTR, actions.CLICK)
-    
-    // captureHtml(page, "3 - added html attribute to desired city option")
+    await citySpan.click()
+    await page.screenshot({ path: 'image-logs/5 - clicked the desired city option.png' })
 
-    // await citySpan.click()
-    // await page.screenshot({ path: '3 - clicked the desired city option.png' })
+    // wait 2 seconds for the animation
+    await page.waitForTimeout(2000)
 
-    // await page.click("#next-page-btn")
-    // await page.screenshot({ path: '4.png' })
-
+    await page.screenshot({ path: 'image-logs/5 - dropdown closed.png' })
 }
 
 const clickStartButton=async(page)=>{
 
     // capture initial page state
-    await page.screenshot({ path: '0 - initial page.png' })
     captureHtml(page, "0 - initial page")
 
     // add the action attribute
@@ -128,16 +147,18 @@ const clickStartButton=async(page)=>{
     await page.click('[value="Start"]')
 
     captureHtml(page, "1 - clicked start button")
-    await page.screenshot({ path: '1 - clicked start button.png' })
+    await page.screenshot({ path: 'image-logs/1 - clicked start button.png' })
 
     // wait for the loading text to disappear
     await page.waitForSelector('#loading-msg[hidden]',{ timeout:0 })
 
     captureHtml(page, "2 - wait for loading to disappear")
-    await page.screenshot({ path: '2 - wait for loading to disappear.png' })
+    await page.screenshot({ path: 'image-logs/2 - wait for loading to disappear.png' })
 }
 
 module.exports={
     crawl,
-    clickStartButton
+    clickStartButton,
+    selectCity,
+
 }
